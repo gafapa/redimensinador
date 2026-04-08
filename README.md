@@ -37,6 +37,10 @@ Client-side React + Vite web app for resizing and improving image batches withou
 - Browser exports do not reliably embed print DPI metadata in every output format, so DPI is applied as an output target and surfaced in naming and UI.
 - Very large batches may use significant memory depending on image dimensions.
 
+## Development Note
+
+- If a previous local project registered a service worker on the same `localhost` origin, the dev build may receive stale cached assets. The app defensively unregisters service workers in development mode.
+
 ## Status
 
 Initial version implemented and production build verified.
