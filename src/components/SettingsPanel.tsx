@@ -1,4 +1,5 @@
 import { dpiOptions, imagePresets } from '../lib/presets';
+import { formatCentimeters, getTargetPixels } from '../lib/image-processing';
 import type { ResizeSettings } from '../types';
 
 type SettingsPanelProps = {
@@ -8,12 +9,12 @@ type SettingsPanelProps = {
 
 export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps) {
   const selectedPreset = imagePresets.find((preset) => preset.id === settings.presetId);
+  const targetPixels = getTargetPixels(settings);
 
   return (
     <section className="panel">
       <div className="panel-heading">
-        <span className="eyebrow">Output</span>
-        <h2>Target size and enhancements</h2>
+        <h2>Size</h2>
       </div>
 
       <div className="settings-grid">
@@ -29,37 +30,38 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
               onSettingsChange({
                 ...settings,
                 presetId: preset.id,
-                width: preset.width,
-                height: preset.height,
-                dpi: preset.category === 'print' ? 300 : settings.dpi,
+                widthCm: preset.widthCm,
+                heightCm: preset.heightCm,
               });
             }}
           >
             {imagePresets.map((preset) => (
               <option key={preset.id} value={preset.id}>
-                {preset.label} · {preset.width}×{preset.height}
+                {preset.label}
               </option>
             ))}
           </select>
         </label>
 
         <label>
-          <span>Width</span>
+          <span>Width (cm)</span>
           <input
             type="number"
-            min={1}
-            value={settings.width}
-            onChange={(event) => onSettingsChange({ ...settings, presetId: 'custom', width: Number(event.target.value) || 1 })}
+            min={0.1}
+            step={0.1}
+            value={settings.widthCm}
+            onChange={(event) => onSettingsChange({ ...settings, presetId: 'custom', widthCm: Number(event.target.value) || 0.1 })}
           />
         </label>
 
         <label>
-          <span>Height</span>
+          <span>Height (cm)</span>
           <input
             type="number"
-            min={1}
-            value={settings.height}
-            onChange={(event) => onSettingsChange({ ...settings, presetId: 'custom', height: Number(event.target.value) || 1 })}
+            min={0.1}
+            step={0.1}
+            value={settings.heightCm}
+            onChange={(event) => onSettingsChange({ ...settings, presetId: 'custom', heightCm: Number(event.target.value) || 0.1 })}
           />
         </label>
 
@@ -75,25 +77,25 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
         </label>
 
         <label>
-          <span>Fit mode</span>
+          <span>Fit</span>
           <select
             value={settings.fitMode}
             onChange={(event) => onSettingsChange({ ...settings, fitMode: event.target.value as ResizeSettings['fitMode'] })}
           >
-            <option value="contain">Contain inside frame</option>
-            <option value="cover">Cover and crop</option>
+            <option value="contain">Contain</option>
+            <option value="cover">Cover</option>
           </select>
         </label>
 
         <label>
-          <span>Upscaling</span>
+          <span>Upscale</span>
           <select
             value={settings.upscaleMode}
             onChange={(event) => onSettingsChange({ ...settings, upscaleMode: event.target.value as ResizeSettings['upscaleMode'] })}
           >
             <option value="off">Off</option>
-            <option value="balanced">Balanced upscale</option>
-            <option value="detail">Detail boost</option>
+            <option value="balanced">Balanced</option>
+            <option value="detail">Detail</option>
           </select>
         </label>
 
@@ -117,8 +119,7 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
 
       <div className="enhancements">
         <div className="panel-heading compact">
-          <h3>Image improvements</h3>
-          <p>Simple browser-side corrections for contrast, tone and presence.</p>
+          <h3>Adjust</h3>
         </div>
 
         <div className="slider-grid">
@@ -198,14 +199,14 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
               })
             }
           />
-          <span>Auto tone stretch</span>
+          <span>Auto tone</span>
         </label>
       </div>
 
-      <p className="meta-note">
-        {selectedPreset ? `${selectedPreset.label} selected.` : 'Custom size selected.'} Browser exports do not reliably embed
-        print DPI metadata in every format, so DPI is used for the output plan and file naming.
-      </p>
+      <div className="mini-summary">
+        <span>{selectedPreset ? selectedPreset.label : `${formatCentimeters(settings.widthCm)} x ${formatCentimeters(settings.heightCm)} cm`}</span>
+        <span>{targetPixels.width} x {targetPixels.height} px</span>
+      </div>
     </section>
   );
 }

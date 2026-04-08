@@ -26,9 +26,7 @@ export function DropZone({ disabled, onSelectFiles }: DropZoneProps) {
       onDrop={handleDrop}
     >
       <input type="file" multiple accept="image/*,.zip" onChange={handleChange} disabled={disabled} />
-      <span className="eyebrow">Import</span>
-      <strong>Drop images here or select files and ZIP archives</strong>
-      <p>JPG, PNG, WEBP or a ZIP with mixed image files. Processing stays local in the browser.</p>
+      <strong>Add images or ZIP</strong>
     </label>
   );
 }

@@ -2,6 +2,7 @@ import pica from 'pica';
 import type { InputImage, OutputFormat, ProcessedImage, ResizeSettings } from '../types';
 
 const resizer = pica({ features: ['js', 'wasm', 'ww'] });
+const centimetersPerInch = 2.54;
 
 export async function readImageDimensions(file: File) {
   const objectUrl = URL.createObjectURL(file);
@@ -25,12 +26,14 @@ export async function readImageDimensions(file: File) {
 }
 
 export function shouldUpscale(image: InputImage, settings: ResizeSettings) {
-  const scaleX = settings.width / image.width;
-  const scaleY = settings.height / image.height;
+  const target = getTargetPixels(settings);
+  const scaleX = target.width / image.width;
+  const scaleY = target.height / image.height;
   return Math.min(scaleX, scaleY) > 1;
 }
 
 export async function processImage(image: InputImage, settings: ResizeSettings): Promise<ProcessedImage> {
+  const target = getTargetPixels(settings);
   const source = await loadImage(image.objectUrl);
   const sourceCanvas = document.createElement('canvas');
   sourceCanvas.width = source.naturalWidth;
@@ -53,8 +56,8 @@ export async function processImage(image: InputImage, settings: ResizeSettings):
   }
 
   const outputCanvas = document.createElement('canvas');
-  outputCanvas.width = settings.width;
-  outputCanvas.height = settings.height;
+  outputCanvas.width = target.width;
+  outputCanvas.height = target.height;
 
   const outputContext = outputCanvas.getContext('2d');
   if (!outputContext) {
@@ -89,11 +92,11 @@ export async function processImage(image: InputImage, settings: ResizeSettings):
 
   return {
     id: image.id,
-    name: `${safeName}_${settings.width}x${settings.height}_${settings.dpi}dpi.${extension}`,
+    name: `${safeName}_${formatCentimeters(settings.widthCm)}x${formatCentimeters(settings.heightCm)}cm_${settings.dpi}dpi.${extension}`,
     blob,
     objectUrl: URL.createObjectURL(blob),
-    width: settings.width,
-    height: settings.height,
+    width: target.width,
+    height: target.height,
     dpi: settings.dpi,
     upscaleApplied,
     warning: upscaleApplied ? undefined : shouldUpscale(image, settings) ? 'Source image is smaller than the target. Enable upscaling for a closer fit.' : undefined,
@@ -101,8 +104,9 @@ export async function processImage(image: InputImage, settings: ResizeSettings):
 }
 
 function computePlacement(image: InputImage, settings: ResizeSettings) {
-  const widthRatio = settings.width / image.width;
-  const heightRatio = settings.height / image.height;
+  const target = getTargetPixels(settings);
+  const widthRatio = target.width / image.width;
+  const heightRatio = target.height / image.height;
   const fitRatio = settings.fitMode === 'cover' ? Math.max(widthRatio, heightRatio) : Math.min(widthRatio, heightRatio);
   const upscaleAllowed = settings.upscaleMode !== 'off';
   const ratio = upscaleAllowed ? fitRatio : Math.min(fitRatio, 1);
@@ -112,10 +116,21 @@ function computePlacement(image: InputImage, settings: ResizeSettings) {
   return {
     drawWidth,
     drawHeight,
-    offsetX: (settings.width - drawWidth) / 2,
-    offsetY: (settings.height - drawHeight) / 2,
+    offsetX: (target.width - drawWidth) / 2,
+    offsetY: (target.height - drawHeight) / 2,
     upscaleApplied: ratio > 1,
   };
+}
+
+export function getTargetPixels(settings: ResizeSettings) {
+  return {
+    width: Math.max(1, Math.round((settings.widthCm / centimetersPerInch) * settings.dpi)),
+    height: Math.max(1, Math.round((settings.heightCm / centimetersPerInch) * settings.dpi)),
+  };
+}
+
+export function formatCentimeters(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 function buildCanvasFilter(settings: ResizeSettings) {

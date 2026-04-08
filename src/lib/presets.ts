@@ -1,21 +1,21 @@
 import type { ImagePreset, ResizeSettings } from '../types';
 
 export const imagePresets: ImagePreset[] = [
-  { id: 'instagram-square', label: 'Instagram Square', width: 1080, height: 1080, category: 'social' },
-  { id: 'instagram-story', label: 'Instagram Story', width: 1080, height: 1920, category: 'social' },
-  { id: 'facebook-post', label: 'Facebook Post', width: 1200, height: 630, category: 'social' },
-  { id: 'youtube-thumb', label: 'YouTube Thumbnail', width: 1280, height: 720, category: 'social' },
-  { id: 'hd-landscape', label: 'HD Landscape', width: 1920, height: 1080, category: 'web' },
-  { id: '4k-landscape', label: '4K Landscape', width: 3840, height: 2160, category: 'web' },
-  { id: 'shop-card', label: 'Shop Card', width: 1600, height: 1600, category: 'web' },
-  { id: 'a4-print', label: 'A4 Print 300 DPI', width: 2480, height: 3508, category: 'print' },
-  { id: 'a3-print', label: 'A3 Print 300 DPI', width: 3508, height: 4961, category: 'print' },
+  { id: '10x15', label: '10 x 15 cm', widthCm: 10, heightCm: 15 },
+  { id: '13x18', label: '13 x 18 cm', widthCm: 13, heightCm: 18 },
+  { id: '15x20', label: '15 x 20 cm', widthCm: 15, heightCm: 20 },
+  { id: '20x25', label: '20 x 25 cm', widthCm: 20, heightCm: 25 },
+  { id: '20x30', label: '20 x 30 cm', widthCm: 20, heightCm: 30 },
+  { id: '30x40', label: '30 x 40 cm', widthCm: 30, heightCm: 40 },
+  { id: 'a5', label: 'A5', widthCm: 14.8, heightCm: 21 },
+  { id: 'a4', label: 'A4', widthCm: 21, heightCm: 29.7 },
+  { id: 'a3', label: 'A3', widthCm: 29.7, heightCm: 42 },
 ];
 
 export const defaultSettings: ResizeSettings = {
   presetId: imagePresets[0].id,
-  width: imagePresets[0].width,
-  height: imagePresets[0].height,
+  widthCm: imagePresets[0].widthCm,
+  heightCm: imagePresets[0].heightCm,
   dpi: 300,
   fitMode: 'contain',
   upscaleMode: 'off',

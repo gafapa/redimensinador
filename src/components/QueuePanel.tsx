@@ -1,4 +1,4 @@
-import { shouldUpscale } from '../lib/image-processing';
+import { formatCentimeters, getTargetPixels, shouldUpscale } from '../lib/image-processing';
 import type { InputImage, ProcessedImage, ResizeSettings } from '../types';
 
 type QueuePanelProps = {
@@ -20,19 +20,20 @@ export function QueuePanel({
   onDownloadZip,
   onClear,
 }: QueuePanelProps) {
+  const targetPixels = getTargetPixels(settings);
+
   return (
     <section className="panel">
       <div className="panel-heading">
-        <span className="eyebrow">Batch</span>
-        <h2>Queue and export</h2>
+        <h2>Files</h2>
       </div>
 
       <div className="queue-actions">
         <button type="button" className="primary-button" onClick={onProcess} disabled={!images.length || processing}>
-          {processing ? 'Processing...' : 'Process batch'}
+          {processing ? 'Processing...' : 'Process'}
         </button>
         <button type="button" className="secondary-button" onClick={onDownloadZip} disabled={!results.length}>
-          Download ZIP
+          ZIP
         </button>
         <button type="button" className="secondary-button" onClick={onClear} disabled={processing || (!images.length && !results.length)}>
           Clear
@@ -41,23 +42,18 @@ export function QueuePanel({
 
       <div className="queue-list">
         {images.length ? (
-          images.map((image) => {
-            const upscaleNeeded = shouldUpscale(image, settings);
-            return (
-              <article key={image.id} className="queue-item">
-                <img src={image.objectUrl} alt={image.name} />
-                <div>
-                  <h3>{image.name}</h3>
-                  <p>
-                    {image.width}×{image.height} px
-                  </p>
-                  <p>{upscaleNeeded ? 'Smaller than target output.' : 'Ready for direct resize.'}</p>
-                </div>
-              </article>
-            );
-          })
+          images.map((image) => (
+            <article key={image.id} className="queue-item">
+              <img src={image.objectUrl} alt={image.name} />
+              <div>
+                <h3>{image.name}</h3>
+                <p>{image.width} x {image.height} px</p>
+                <p>{shouldUpscale(image, settings) ? 'Upscale' : 'OK'}</p>
+              </div>
+            </article>
+          ))
         ) : (
-          <p className="empty-state">No images loaded yet.</p>
+          <p className="empty-state">No files</p>
         )}
       </div>
 
@@ -68,12 +64,10 @@ export function QueuePanel({
               <img src={result.objectUrl} alt={result.name} />
               <div>
                 <h3>{result.name}</h3>
-                <p>
-                  {result.width}×{result.height} px · {result.dpi} DPI
-                </p>
-                <p>{result.upscaleApplied ? 'Upscaled during export.' : result.warning ?? 'No upscaling was needed.'}</p>
+                <p>{formatCentimeters(settings.widthCm)} x {formatCentimeters(settings.heightCm)} cm</p>
+                <p>{targetPixels.width} x {targetPixels.height} px / {result.dpi} DPI</p>
                 <a href={result.objectUrl} download={result.name} className="download-link">
-                  Download file
+                  Download
                 </a>
               </div>
             </article>

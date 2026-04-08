@@ -10,9 +10,10 @@
 
 - Keep the application frontend-only.
 - Prefer browser-native APIs unless a dependency clearly reduces complexity.
+- Treat print sizing in centimeters as the primary unit in the UI.
 - Preserve image aspect ratio during resize operations.
 - Never upscale by default without explicit user consent.
-- Expose common size presets first, then allow custom dimensions.
+- Expose common print size presets first, then allow custom dimensions.
 - Surface clear warnings when the source image is below the requested target size.
 
 ## Engineering Rules

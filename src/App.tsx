@@ -3,7 +3,7 @@ import { DropZone } from './components/DropZone';
 import { QueuePanel } from './components/QueuePanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { buildZipBundle, extractImagesFromZip, isImageFile, isZipFile } from './lib/archive';
-import { processImage, readImageDimensions, shouldUpscale } from './lib/image-processing';
+import { formatCentimeters, getTargetPixels, processImage, readImageDimensions, shouldUpscale } from './lib/image-processing';
 import { defaultSettings } from './lib/presets';
 import type { InputImage, ProcessedImage } from './types';
 
@@ -12,16 +12,13 @@ function App() {
   const [images, setImages] = useState<InputImage[]>([]);
   const [results, setResults] = useState<ProcessedImage[]>([]);
   const [processing, setProcessing] = useState(false);
-  const [status, setStatus] = useState('Load a batch to start.');
+  const [status, setStatus] = useState('Ready');
   const imagesRef = useRef<InputImage[]>([]);
   const resultsRef = useRef<ProcessedImage[]>([]);
 
   const deferredImages = useDeferredValue(images);
-
-  const summary = {
-    total: deferredImages.length,
-    upscaleCount: deferredImages.filter((image) => shouldUpscale(image, settings)).length,
-  };
+  const targetPixels = getTargetPixels(settings);
+  const upscaleCount = deferredImages.filter((image) => shouldUpscale(image, settings)).length;
 
   useEffect(() => {
     imagesRef.current = images;
@@ -43,7 +40,7 @@ function App() {
       return;
     }
 
-    setStatus('Reading files...');
+    setStatus('Loading');
     const importedImages: InputImage[] = [];
 
     for (const file of Array.from(fileList)) {
@@ -90,18 +87,17 @@ function App() {
       });
     });
 
-    setStatus(`${importedImages.length} image${importedImages.length === 1 ? '' : 's'} ready.`);
+    setStatus(`${importedImages.length} files`);
   };
 
   const handleProcess = async () => {
     setProcessing(true);
-    setStatus('Processing batch...');
+    setStatus('Processing');
 
     try {
       const processed: ProcessedImage[] = [];
       for (const image of images) {
-        const result = await processImage(image, settings);
-        processed.push(result);
+        processed.push(await processImage(image, settings));
       }
 
       startTransition(() => {
@@ -110,9 +106,9 @@ function App() {
           return processed;
         });
       });
-      setStatus(`${processed.length} output file${processed.length === 1 ? '' : 's'} ready.`);
+      setStatus(`${processed.length} ready`);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Processing failed.');
+      setStatus(error instanceof Error ? error.message : 'Error');
     } finally {
       setProcessing(false);
     }
@@ -123,7 +119,7 @@ function App() {
     const url = URL.createObjectURL(zipBlob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `image-batch_${settings.width}x${settings.height}_${settings.dpi}dpi.zip`;
+    anchor.download = `print_${formatCentimeters(settings.widthCm)}x${formatCentimeters(settings.heightCm)}cm_${settings.dpi}dpi.zip`;
     anchor.click();
     URL.revokeObjectURL(url);
   };
@@ -133,44 +129,32 @@ function App() {
     results.forEach((item) => URL.revokeObjectURL(item.objectUrl));
     setImages([]);
     setResults([]);
-    setStatus('Queue cleared.');
+    setStatus('Ready');
   };
 
   return (
     <div className="app-shell">
-      <header className="hero">
-        <div className="hero-copy">
-          <span className="eyebrow">Image Batch Resizer</span>
-          <h1>Resize entire image sets for print, social and web in one pass.</h1>
-          <p>
-            Upload loose files or a ZIP, pick a popular target size, set DPI, and export a clean batch without leaving the
-            browser.
-          </p>
-        </div>
-        <div className="hero-metrics">
-          <div>
-            <strong>{summary.total}</strong>
-            <span>Loaded images</span>
-          </div>
-          <div>
-            <strong>{summary.upscaleCount}</strong>
-            <span>Need upscaling</span>
-          </div>
-          <div>
-            <strong>
-              {settings.width}×{settings.height}
-            </strong>
-            <span>Target frame</span>
-          </div>
-        </div>
-      </header>
-
       <main className="workspace">
+        <section className="topbar">
+          <div className="title-block">
+            <h1>Print Resize</h1>
+            <p>
+              {formatCentimeters(settings.widthCm)} x {formatCentimeters(settings.heightCm)} cm · {settings.dpi} DPI
+            </p>
+          </div>
+          <div className="top-stats">
+            <span>{deferredImages.length}</span>
+            <span>{upscaleCount}</span>
+            <span>
+              {targetPixels.width} x {targetPixels.height}
+            </span>
+          </div>
+        </section>
+
         <section className="panel intro-panel">
           <DropZone disabled={processing} onSelectFiles={handleFiles} />
           <div className="status-strip">
             <p>{status}</p>
-            <p>{settings.upscaleMode === 'off' ? 'Upscaling disabled.' : 'Upscaling ready for undersized sources.'}</p>
           </div>
         </section>
 

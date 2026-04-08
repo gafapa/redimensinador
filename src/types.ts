@@ -5,9 +5,8 @@ export type OutputFormat = 'jpeg' | 'png' | 'webp';
 export type ImagePreset = {
   id: string;
   label: string;
-  width: number;
-  height: number;
-  category: 'social' | 'web' | 'print';
+  widthCm: number;
+  heightCm: number;
 };
 
 export type EnhancementSettings = {
@@ -20,8 +19,8 @@ export type EnhancementSettings = {
 
 export type ResizeSettings = {
   presetId: string;
-  width: number;
-  height: number;
+  widthCm: number;
+  heightCm: number;
   dpi: number;
   fitMode: FitMode;
   upscaleMode: UpscaleMode;

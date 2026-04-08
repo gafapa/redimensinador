@@ -1,16 +1,15 @@
-# Image Batch Resizer
+# Print Image Resizer
 
-Client-side React + Vite web app for resizing and improving image batches without a backend.
+Client-side React + Vite app for preparing image batches for print.
 
 ## Goals
 
-- Import individual image files or a ZIP archive.
-- Resize images to common target formats while preserving aspect ratio.
-- Let the user choose output DPI.
-- Offer upscaling when the source image is smaller than the target.
-- Provide lightweight enhancement controls before export.
-- Export processed images individually or as a ZIP bundle.
-- Support both contain and cover fit modes.
+- Import loose images or a ZIP archive.
+- Work with print sizes in centimeters.
+- Convert target size to pixels using DPI.
+- Keep aspect ratio with contain or cover fit modes.
+- Offer optional upscaling and simple image adjustments.
+- Export processed files individually or as a ZIP bundle.
 
 ## Stack
 
@@ -23,18 +22,16 @@ Client-side React + Vite web app for resizing and improving image batches withou
 
 ## Workflow
 
-1. Upload images or a ZIP archive.
-2. Pick a target size preset or custom dimensions.
-3. Choose DPI and fit strategy.
-4. Enable optional upscaling and image enhancements.
-5. Process the batch locally in the browser.
-6. Download processed files.
+1. Add images or a ZIP archive.
+2. Choose a print size in centimeters and a DPI value.
+3. Process the batch locally in the browser.
+4. Download files or a ZIP bundle.
 
 ## Constraints
 
 - No backend services.
 - All image processing runs in the browser.
-- Browser exports do not reliably embed print DPI metadata in every output format, so DPI is applied as an output target and surfaced in naming and UI.
+- Browser exports do not reliably embed print DPI metadata in every output format, so DPI is used to calculate output pixel dimensions and is surfaced in naming and UI.
 - Very large batches may use significant memory depending on image dimensions.
 
 ## Development Note
@@ -43,4 +40,4 @@ Client-side React + Vite web app for resizing and improving image batches withou
 
 ## Status
 
-Initial version implemented and production build verified.
+Print-oriented centimeter workflow implemented and production build verified.
