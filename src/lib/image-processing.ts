@@ -84,9 +84,17 @@ export async function processImage(image: InputImage, settings: ResizeSettings):
     });
 
     outputContext.drawImage(resizedCanvas, Math.round(offsetX), Math.round(offsetY));
+    resizedCanvas.width = 0;
+    resizedCanvas.height = 0;
   }
 
   const blob = await canvasToBlob(outputCanvas, settings.outputFormat, settings.quality);
+
+  sourceCanvas.width = 0;
+  sourceCanvas.height = 0;
+  outputCanvas.width = 0;
+  outputCanvas.height = 0;
+
   const extension = formatToExtension(settings.outputFormat);
   const safeName = image.name.replace(/\.[^.]+$/, '');
 

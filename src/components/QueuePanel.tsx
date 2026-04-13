@@ -60,15 +60,22 @@ export function QueuePanel({
       {results.length > 0 && (
         <div className="results-grid">
           {results.map((result) => (
-            <article key={result.id} className="result-card">
-              <img src={result.objectUrl} alt={result.name} />
+            <article key={result.id} className={`result-card${result.error ? ' result-card--error' : ''}`}>
+              {result.objectUrl && <img src={result.objectUrl} alt={result.name} />}
               <div>
                 <h3>{result.name}</h3>
-                <p>{formatCentimeters(settings.widthCm)} x {formatCentimeters(settings.heightCm)} cm</p>
-                <p>{targetPixels.width} x {targetPixels.height} px / {result.dpi} DPI</p>
-                <a href={result.objectUrl} download={result.name} className="download-link">
-                  Download
-                </a>
+                {result.error ? (
+                  <p className="result-error">{result.error}</p>
+                ) : (
+                  <>
+                    <p>{formatCentimeters(settings.widthCm)} x {formatCentimeters(settings.heightCm)} cm</p>
+                    <p>{targetPixels.width} x {targetPixels.height} px / {result.dpi} DPI</p>
+                    {result.warning && <p className="result-warning">{result.warning}</p>}
+                    <a href={result.objectUrl} download={result.name} className="download-link">
+                      Download
+                    </a>
+                  </>
+                )}
               </div>
             </article>
           ))}

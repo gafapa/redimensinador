@@ -51,4 +51,5 @@ export type ProcessedImage = {
   dpi: number;
   upscaleApplied: boolean;
   warning?: string;
+  error?: string;
 };

@@ -94,24 +94,38 @@ function App() {
     setProcessing(true);
     setStatus('Processing');
 
-    try {
-      const processed: ProcessedImage[] = [];
-      for (const image of images) {
-        processed.push(await processImage(image, settings));
-      }
+    const processed: ProcessedImage[] = [];
+    let errorCount = 0;
 
-      startTransition(() => {
-        setResults((current) => {
-          current.forEach((item) => URL.revokeObjectURL(item.objectUrl));
-          return processed;
+    for (const image of images) {
+      try {
+        processed.push(await processImage(image, settings));
+      } catch (error) {
+        errorCount += 1;
+        processed.push({
+          id: image.id,
+          name: image.name,
+          blob: new Blob(),
+          objectUrl: '',
+          width: 0,
+          height: 0,
+          dpi: settings.dpi,
+          upscaleApplied: false,
+          error: error instanceof Error ? error.message : 'Processing failed',
         });
-      });
-      setStatus(`${processed.length} ready`);
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Error');
-    } finally {
-      setProcessing(false);
+      }
     }
+
+    startTransition(() => {
+      setResults((current) => {
+        current.forEach((item) => { if (item.objectUrl) URL.revokeObjectURL(item.objectUrl); });
+        return processed;
+      });
+    });
+
+    const okCount = processed.length - errorCount;
+    setStatus(errorCount > 0 ? `${okCount} ready, ${errorCount} failed` : `${okCount} ready`);
+    setProcessing(false);
   };
 
   const handleDownloadZip = async () => {
@@ -143,11 +157,9 @@ function App() {
             </p>
           </div>
           <div className="top-stats">
-            <span>{deferredImages.length}</span>
-            <span>{upscaleCount}</span>
-            <span>
-              {targetPixels.width} x {targetPixels.height}
-            </span>
+            <span><b>{deferredImages.length}</b> files</span>
+            <span><b>{upscaleCount}</b> upscale</span>
+            <span><b>{targetPixels.width} x {targetPixels.height}</b> px</span>
           </div>
         </section>
 

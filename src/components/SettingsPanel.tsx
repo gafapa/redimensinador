@@ -188,6 +188,19 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
           </label>
         </div>
 
+          <label>
+            <span>Quality {Math.round(settings.quality * 100)}%</span>
+            <input
+              type="range"
+              min={50}
+              max={100}
+              value={Math.round(settings.quality * 100)}
+              onChange={(event) =>
+                onSettingsChange({ ...settings, quality: Number(event.target.value) / 100 })
+              }
+            />
+          </label>
+
         <label className="toggle">
           <input
             type="checkbox"
