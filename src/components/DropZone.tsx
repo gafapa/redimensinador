@@ -2,10 +2,11 @@ import type { ChangeEvent, DragEvent } from 'react';
 
 type DropZoneProps = {
   disabled?: boolean;
+  label?: string;
   onSelectFiles: (files: FileList | null) => void;
 };
 
-export function DropZone({ disabled, onSelectFiles }: DropZoneProps) {
+export function DropZone({ disabled, label = 'Add images or ZIP', onSelectFiles }: DropZoneProps) {
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     onSelectFiles(event.target.files);
     event.target.value = '';
@@ -13,9 +14,7 @@ export function DropZone({ disabled, onSelectFiles }: DropZoneProps) {
 
   const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
     event.preventDefault();
-    if (disabled) {
-      return;
-    }
+    if (disabled) return;
     onSelectFiles(event.dataTransfer.files);
   };
 
@@ -26,7 +25,7 @@ export function DropZone({ disabled, onSelectFiles }: DropZoneProps) {
       onDrop={handleDrop}
     >
       <input type="file" multiple accept="image/*,.zip" onChange={handleChange} disabled={disabled} />
-      <strong>Add images or ZIP</strong>
+      <strong>{label}</strong>
     </label>
   );
 }

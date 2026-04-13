@@ -1,134 +1,124 @@
-import { startTransition, useDeferredValue, useEffect, useRef, useState } from 'react';
-import { DropZone } from './components/DropZone';
-import { QueuePanel } from './components/QueuePanel';
-import { SettingsPanel } from './components/SettingsPanel';
+import { startTransition, useEffect, useRef, useState } from 'react';
+import { ConfigView } from './components/ConfigView';
+import { ExecuteView } from './components/ExecuteView';
 import { buildZipBundle, extractImagesFromZip, isImageFile, isZipFile } from './lib/archive';
-import { formatCentimeters, getTargetPixels, processImage, readImageDimensions, shouldUpscale } from './lib/image-processing';
+import { formatCentimeters, processImage, readImageDimensions } from './lib/image-processing';
 import { defaultSettings } from './lib/presets';
-import type { InputImage, ProcessedImage } from './types';
+import type { ImageRow, ResizeSettings } from './types';
+
+type View = 'config' | 'execute';
 
 function App() {
+  const [view, setView] = useState<View>('execute');
   const [settings, setSettings] = useState(defaultSettings);
-  const [images, setImages] = useState<InputImage[]>([]);
-  const [results, setResults] = useState<ProcessedImage[]>([]);
+  const [rows, setRows] = useState<ImageRow[]>([]);
   const [processing, setProcessing] = useState(false);
-  const [status, setStatus] = useState('Ready');
-  const imagesRef = useRef<InputImage[]>([]);
-  const resultsRef = useRef<ProcessedImage[]>([]);
-
-  const deferredImages = useDeferredValue(images);
-  const targetPixels = getTargetPixels(settings);
-  const upscaleCount = deferredImages.filter((image) => shouldUpscale(image, settings)).length;
+  const rowsRef = useRef<ImageRow[]>([]);
 
   useEffect(() => {
-    imagesRef.current = images;
-  }, [images]);
-
-  useEffect(() => {
-    resultsRef.current = results;
-  }, [results]);
+    rowsRef.current = rows;
+  }, [rows]);
 
   useEffect(() => {
     return () => {
-      imagesRef.current.forEach((item) => URL.revokeObjectURL(item.objectUrl));
-      resultsRef.current.forEach((item) => URL.revokeObjectURL(item.objectUrl));
+      rowsRef.current.forEach((row) => {
+        URL.revokeObjectURL(row.input.objectUrl);
+        if (row.result?.objectUrl) URL.revokeObjectURL(row.result.objectUrl);
+      });
     };
   }, []);
 
   const handleFiles = async (fileList: FileList | null) => {
-    if (!fileList?.length) {
-      return;
-    }
+    if (!fileList?.length) return;
 
-    setStatus('Loading');
-    const importedImages: InputImage[] = [];
+    const newRows: ImageRow[] = [];
 
     for (const file of Array.from(fileList)) {
       if (isZipFile(file)) {
         const filesFromZip = await extractImagesFromZip(file);
         for (const entry of filesFromZip) {
-          const dimensions = await readImageDimensions(entry);
-          importedImages.push({
-            id: crypto.randomUUID(),
-            name: entry.name,
-            source: 'zip',
-            file: entry,
-            objectUrl: dimensions.objectUrl,
-            width: dimensions.width,
-            height: dimensions.height,
-            aspectRatio: dimensions.width / dimensions.height,
+          const dims = await readImageDimensions(entry);
+          newRows.push({
+            input: {
+              id: crypto.randomUUID(),
+              name: entry.name,
+              source: 'zip',
+              file: entry,
+              objectUrl: dims.objectUrl,
+              width: dims.width,
+              height: dims.height,
+              aspectRatio: dims.width / dims.height,
+            },
+            status: 'pending',
           });
         }
         continue;
       }
 
-      if (!isImageFile(file)) {
-        continue;
-      }
+      if (!isImageFile(file)) continue;
 
-      const dimensions = await readImageDimensions(file);
-      importedImages.push({
-        id: crypto.randomUUID(),
-        name: file.name,
-        source: 'file',
-        file,
-        objectUrl: dimensions.objectUrl,
-        width: dimensions.width,
-        height: dimensions.height,
-        aspectRatio: dimensions.width / dimensions.height,
+      const dims = await readImageDimensions(file);
+      newRows.push({
+        input: {
+          id: crypto.randomUUID(),
+          name: file.name,
+          source: 'file',
+          file,
+          objectUrl: dims.objectUrl,
+          width: dims.width,
+          height: dims.height,
+          aspectRatio: dims.width / dims.height,
+        },
+        status: 'pending',
       });
     }
 
     startTransition(() => {
-      setImages((current) => [...current, ...importedImages]);
-      setResults((current) => {
-        current.forEach((item) => URL.revokeObjectURL(item.objectUrl));
-        return [];
-      });
+      setRows((current) => [...current, ...newRows]);
     });
-
-    setStatus(`${importedImages.length} files`);
   };
 
   const handleProcess = async () => {
+    const currentRows = rows;
+    if (!currentRows.length) return;
+
     setProcessing(true);
-    setStatus('Processing');
+    const capturedSettings: ResizeSettings = settings;
 
-    const processed: ProcessedImage[] = [];
-    let errorCount = 0;
+    for (const row of currentRows) {
+      const id = row.input.id;
 
-    for (const image of images) {
+      if (row.result?.objectUrl) URL.revokeObjectURL(row.result.objectUrl);
+
+      setRows((prev) =>
+        prev.map((r) =>
+          r.input.id === id ? { ...r, status: 'processing', result: undefined, error: undefined } : r,
+        ),
+      );
+
       try {
-        processed.push(await processImage(image, settings));
+        const result = await processImage(row.input, capturedSettings);
+        setRows((prev) =>
+          prev.map((r) => (r.input.id === id ? { ...r, status: 'done', result } : r)),
+        );
       } catch (error) {
-        errorCount += 1;
-        processed.push({
-          id: image.id,
-          name: image.name,
-          blob: new Blob(),
-          objectUrl: '',
-          width: 0,
-          height: 0,
-          dpi: settings.dpi,
-          upscaleApplied: false,
-          error: error instanceof Error ? error.message : 'Processing failed',
-        });
+        setRows((prev) =>
+          prev.map((r) =>
+            r.input.id === id
+              ? { ...r, status: 'error', error: error instanceof Error ? error.message : 'Processing failed' }
+              : r,
+          ),
+        );
       }
     }
 
-    startTransition(() => {
-      setResults((current) => {
-        current.forEach((item) => { if (item.objectUrl) URL.revokeObjectURL(item.objectUrl); });
-        return processed;
-      });
-    });
-
-    const okCount = processed.length - errorCount;
-    setStatus(errorCount > 0 ? `${okCount} ready, ${errorCount} failed` : `${okCount} ready`);
     setProcessing(false);
   };
 
   const handleDownloadZip = async () => {
+    const results = rowsRef.current.filter((r) => r.result).map((r) => r.result!);
+    if (!results.length) return;
+
     const zipBlob = await buildZipBundle(results);
     const url = URL.createObjectURL(zipBlob);
     const anchor = document.createElement('a');
@@ -139,51 +129,34 @@ function App() {
   };
 
   const handleClear = () => {
-    images.forEach((item) => URL.revokeObjectURL(item.objectUrl));
-    results.forEach((item) => URL.revokeObjectURL(item.objectUrl));
-    setImages([]);
-    setResults([]);
-    setStatus('Ready');
+    rowsRef.current.forEach((row) => {
+      URL.revokeObjectURL(row.input.objectUrl);
+      if (row.result?.objectUrl) URL.revokeObjectURL(row.result.objectUrl);
+    });
+    setRows([]);
   };
 
+  if (view === 'config') {
+    return (
+      <ConfigView
+        settings={settings}
+        onSettingsChange={setSettings}
+        onBack={() => setView('execute')}
+      />
+    );
+  }
+
   return (
-    <div className="app-shell">
-      <main className="workspace">
-        <section className="topbar">
-          <div className="title-block">
-            <h1>Print Resize</h1>
-            <p>
-              {formatCentimeters(settings.widthCm)} x {formatCentimeters(settings.heightCm)} cm · {settings.dpi} DPI
-            </p>
-          </div>
-          <div className="top-stats">
-            <span><b>{deferredImages.length}</b> files</span>
-            <span><b>{upscaleCount}</b> upscale</span>
-            <span><b>{targetPixels.width} x {targetPixels.height}</b> px</span>
-          </div>
-        </section>
-
-        <section className="panel intro-panel">
-          <DropZone disabled={processing} onSelectFiles={handleFiles} />
-          <div className="status-strip">
-            <p>{status}</p>
-          </div>
-        </section>
-
-        <div className="workspace-grid">
-          <SettingsPanel settings={settings} onSettingsChange={setSettings} />
-          <QueuePanel
-            images={images}
-            results={results}
-            settings={settings}
-            processing={processing}
-            onProcess={handleProcess}
-            onDownloadZip={handleDownloadZip}
-            onClear={handleClear}
-          />
-        </div>
-      </main>
-    </div>
+    <ExecuteView
+      settings={settings}
+      rows={rows}
+      processing={processing}
+      onFiles={handleFiles}
+      onProcess={handleProcess}
+      onDownloadZip={handleDownloadZip}
+      onClear={handleClear}
+      onConfigClick={() => setView('config')}
+    />
   );
 }
 

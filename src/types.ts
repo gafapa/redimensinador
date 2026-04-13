@@ -1,6 +1,7 @@
 export type FitMode = 'contain' | 'cover';
 export type UpscaleMode = 'off' | 'balanced' | 'detail';
 export type OutputFormat = 'jpeg' | 'png' | 'webp';
+export type OrientationMode = 'fixed' | 'auto' | 'portrait' | 'landscape';
 
 export type ImagePreset = {
   id: string;
@@ -24,6 +25,7 @@ export type ResizeSettings = {
   dpi: number;
   fitMode: FitMode;
   upscaleMode: UpscaleMode;
+  orientationMode: OrientationMode;
   outputFormat: OutputFormat;
   quality: number;
   background: string;
@@ -51,5 +53,14 @@ export type ProcessedImage = {
   dpi: number;
   upscaleApplied: boolean;
   warning?: string;
+  error?: string;
+};
+
+export type RowStatus = 'pending' | 'processing' | 'done' | 'error';
+
+export type ImageRow = {
+  input: InputImage;
+  status: RowStatus;
+  result?: ProcessedImage;
   error?: string;
 };

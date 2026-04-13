@@ -4,6 +4,50 @@ import type { InputImage, OutputFormat, ProcessedImage, ResizeSettings } from '.
 const resizer = pica({ features: ['js', 'wasm', 'ww'] });
 const centimetersPerInch = 2.54;
 
+// Returns the effective target dimensions, potentially swapping width/height based on orientation mode.
+export function getEffectiveTarget(settings: ResizeSettings, image: InputImage) {
+  let { widthCm, heightCm } = settings;
+  const { orientationMode } = settings;
+  const imageIsLandscape = image.width > image.height;
+  const targetIsLandscape = widthCm > heightCm;
+
+  if (orientationMode === 'auto') {
+    if (imageIsLandscape !== targetIsLandscape && widthCm !== heightCm) {
+      [widthCm, heightCm] = [heightCm, widthCm];
+    }
+  } else if (orientationMode === 'portrait') {
+    if (widthCm > heightCm) [widthCm, heightCm] = [heightCm, widthCm];
+  } else if (orientationMode === 'landscape') {
+    if (heightCm > widthCm) [widthCm, heightCm] = [heightCm, widthCm];
+  }
+
+  return {
+    widthCm,
+    heightCm,
+    width: Math.max(1, Math.round((widthCm / centimetersPerInch) * settings.dpi)),
+    height: Math.max(1, Math.round((heightCm / centimetersPerInch) * settings.dpi)),
+  };
+}
+
+function needsRotation(image: InputImage, settings: ResizeSettings): boolean {
+  const { orientationMode } = settings;
+  if (orientationMode === 'fixed' || orientationMode === 'auto') return false;
+  const imageIsLandscape = image.width > image.height;
+  return orientationMode === 'portrait' ? imageIsLandscape : !imageIsLandscape;
+}
+
+function rotateCanvas90(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  const rotated = document.createElement('canvas');
+  rotated.width = canvas.height;
+  rotated.height = canvas.width;
+  const ctx = rotated.getContext('2d');
+  if (!ctx) return canvas;
+  ctx.translate(rotated.width / 2, rotated.height / 2);
+  ctx.rotate(Math.PI / 2);
+  ctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+  return rotated;
+}
+
 export async function readImageDimensions(file: File) {
   const objectUrl = URL.createObjectURL(file);
   try {
@@ -26,16 +70,19 @@ export async function readImageDimensions(file: File) {
 }
 
 export function shouldUpscale(image: InputImage, settings: ResizeSettings) {
-  const target = getTargetPixels(settings);
-  const scaleX = target.width / image.width;
-  const scaleY = target.height / image.height;
+  const target = getEffectiveTarget(settings, image);
+  const rotate = needsRotation(image, settings);
+  const imgW = rotate ? image.height : image.width;
+  const imgH = rotate ? image.width : image.height;
+  const scaleX = target.width / imgW;
+  const scaleY = target.height / imgH;
   return Math.min(scaleX, scaleY) > 1;
 }
 
 export async function processImage(image: InputImage, settings: ResizeSettings): Promise<ProcessedImage> {
-  const target = getTargetPixels(settings);
+  const effectiveTarget = getEffectiveTarget(settings, image);
   const source = await loadImage(image.objectUrl);
-  const sourceCanvas = document.createElement('canvas');
+  let sourceCanvas = document.createElement('canvas');
   sourceCanvas.width = source.naturalWidth;
   sourceCanvas.height = source.naturalHeight;
 
@@ -55,9 +102,16 @@ export async function processImage(image: InputImage, settings: ResizeSettings):
     applySharpen(sourceCanvas, settings.enhancements.sharpen);
   }
 
+  if (needsRotation(image, settings)) {
+    const rotated = rotateCanvas90(sourceCanvas);
+    sourceCanvas.width = 0;
+    sourceCanvas.height = 0;
+    sourceCanvas = rotated;
+  }
+
   const outputCanvas = document.createElement('canvas');
-  outputCanvas.width = target.width;
-  outputCanvas.height = target.height;
+  outputCanvas.width = effectiveTarget.width;
+  outputCanvas.height = effectiveTarget.height;
 
   const outputContext = outputCanvas.getContext('2d');
   if (!outputContext) {
@@ -67,7 +121,11 @@ export async function processImage(image: InputImage, settings: ResizeSettings):
   outputContext.fillStyle = settings.background;
   outputContext.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
 
-  const { drawWidth, drawHeight, offsetX, offsetY, upscaleApplied } = computePlacement(image, settings);
+  const { drawWidth, drawHeight, offsetX, offsetY, upscaleApplied } = computePlacement(
+    { width: sourceCanvas.width, height: sourceCanvas.height },
+    effectiveTarget,
+    settings,
+  );
 
   if (drawWidth === sourceCanvas.width && drawHeight === sourceCanvas.height && offsetX === 0 && offsetY === 0) {
     outputContext.drawImage(sourceCanvas, 0, 0);
@@ -76,9 +134,10 @@ export async function processImage(image: InputImage, settings: ResizeSettings):
     resizedCanvas.width = Math.max(1, Math.round(drawWidth));
     resizedCanvas.height = Math.max(1, Math.round(drawHeight));
 
+    const isUpscaling = drawWidth > sourceCanvas.width || drawHeight > sourceCanvas.height;
     await resizer.resize(sourceCanvas, resizedCanvas, {
-      quality: settings.upscaleMode === 'detail' ? 3 : 2,
-      unsharpAmount: settings.upscaleMode === 'detail' ? 120 : 80,
+      quality: isUpscaling && settings.upscaleMode === 'detail' ? 3 : 2,
+      unsharpAmount: isUpscaling && settings.upscaleMode === 'detail' ? 120 : 80,
       unsharpRadius: 0.6,
       unsharpThreshold: 2,
     });
@@ -100,26 +159,29 @@ export async function processImage(image: InputImage, settings: ResizeSettings):
 
   return {
     id: image.id,
-    name: `${safeName}_${formatCentimeters(settings.widthCm)}x${formatCentimeters(settings.heightCm)}cm_${settings.dpi}dpi.${extension}`,
+    name: `${safeName}_${formatCentimeters(effectiveTarget.widthCm)}x${formatCentimeters(effectiveTarget.heightCm)}cm_${settings.dpi}dpi.${extension}`,
     blob,
     objectUrl: URL.createObjectURL(blob),
-    width: target.width,
-    height: target.height,
+    width: effectiveTarget.width,
+    height: effectiveTarget.height,
     dpi: settings.dpi,
     upscaleApplied,
-    warning: upscaleApplied ? undefined : shouldUpscale(image, settings) ? 'Source image is smaller than the target. Enable upscaling for a closer fit.' : undefined,
+    warning: upscaleApplied ? undefined : shouldUpscale(image, settings) ? 'upscaleNeeded' : undefined,
   };
 }
 
-function computePlacement(image: InputImage, settings: ResizeSettings) {
-  const target = getTargetPixels(settings);
-  const widthRatio = target.width / image.width;
-  const heightRatio = target.height / image.height;
+function computePlacement(
+  imageDims: { width: number; height: number },
+  target: { width: number; height: number },
+  settings: ResizeSettings,
+) {
+  const widthRatio = target.width / imageDims.width;
+  const heightRatio = target.height / imageDims.height;
   const fitRatio = settings.fitMode === 'cover' ? Math.max(widthRatio, heightRatio) : Math.min(widthRatio, heightRatio);
   const upscaleAllowed = settings.upscaleMode !== 'off';
   const ratio = upscaleAllowed ? fitRatio : Math.min(fitRatio, 1);
-  const drawWidth = image.width * ratio;
-  const drawHeight = image.height * ratio;
+  const drawWidth = imageDims.width * ratio;
+  const drawHeight = imageDims.height * ratio;
 
   return {
     drawWidth,

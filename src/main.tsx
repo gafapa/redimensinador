@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { LangProvider } from './lib/i18n';
 import './styles.css';
 
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {
@@ -23,6 +24,8 @@ const mountNode =
 
 ReactDOM.createRoot(mountNode).render(
   <React.StrictMode>
-    <App />
+    <LangProvider>
+      <App />
+    </LangProvider>
   </React.StrictMode>,
 );
