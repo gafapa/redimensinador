@@ -1,5 +1,6 @@
 import { SettingsPanel } from './SettingsPanel';
 import { LangSelector } from './LangSelector';
+import { AppIcon } from './AppIcon';
 import { useI18n } from '../lib/i18n';
 import type { ResizeSettings } from '../types';
 
@@ -18,6 +19,7 @@ export function ConfigView({ settings, onSettingsChange, onBack }: ConfigViewPro
           <button type="button" className="secondary-button" onClick={onBack}>
             {tr.back}
           </button>
+          <AppIcon />
           <h1 className="view-header__title">{tr.settings}</h1>
         </div>
         <div className="view-header__right">

@@ -19,10 +19,10 @@ export const defaultSettings: ResizeSettings = {
   dpi: 300,
   fitMode: 'contain',
   upscaleMode: 'balanced',
-  orientationMode: 'fixed',
+  orientationMode: 'auto',
   outputFormat: 'jpeg',
   quality: 0.92,
-  background: '#f6f0e8',
+  background: '#ffffff',
   enhancements: {
     brightness: 100,
     contrast: 100,

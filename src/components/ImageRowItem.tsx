@@ -3,9 +3,10 @@ import type { ImageRow } from '../types';
 
 type ImageRowItemProps = {
   row: ImageRow;
+  onCompare: (row: ImageRow) => void;
 };
 
-export function ImageRowItem({ row }: ImageRowItemProps) {
+export function ImageRowItem({ row, onCompare }: ImageRowItemProps) {
   const { tr } = useI18n();
   const { input, status, result, error } = row;
   const thumbSrc = status === 'done' && result ? result.objectUrl : input.objectUrl;
@@ -38,9 +39,14 @@ export function ImageRowItem({ row }: ImageRowItemProps) {
       </div>
 
       {status === 'done' && result ? (
-        <a href={result.objectUrl} download={result.name} className="image-row__download" title={result.name}>
-          ↓
-        </a>
+        <div className="image-row__actions">
+          <button type="button" className="secondary-button image-row__compare" onClick={() => onCompare(row)}>
+            {tr.compare}
+          </button>
+          <a href={result.objectUrl} download={result.name} className="image-row__download" title={result.name}>
+            ↓
+          </a>
+        </div>
       ) : (
         <span className="image-row__download-placeholder" />
       )}

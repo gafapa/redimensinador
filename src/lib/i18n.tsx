@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 export type Lang = 'en' | 'es' | 'gl' | 'fr' | 'de' | 'pt' | 'ca' | 'eu';
 
@@ -6,10 +6,12 @@ export type Translations = {
   appTitle: string;
   settings: string;
   back: string;
+  close: string;
   language: string;
   dropZoneLabel: string;
   dropHint: string;
   processAll: string;
+  importing: string;
   clear: string;
   pending: string;
   processing: string;
@@ -27,7 +29,6 @@ export type Translations = {
   background: string;
   contain: string;
   cover: string;
-  fixed: string;
   auto: string;
   portrait: string;
   landscape: string;
@@ -42,17 +43,25 @@ export type Translations = {
   quality: string;
   autoTone: string;
   upscaleNeeded: string;
+  compare: string;
+  before: string;
+  after: string;
+  comparison: string;
+  previous: string;
+  next: string;
 };
 
 const t: Record<Lang, Translations> = {
   en: {
-    appTitle: 'Print Resize',
+    appTitle: 'PrintFit Studio',
     settings: 'Settings',
     back: '← Back',
+    close: 'Close',
     language: 'Language',
-    dropZoneLabel: 'Add images or ZIP',
-    dropHint: 'Drop images above to start',
+    dropZoneLabel: 'Add images, PDF or ZIP',
+    dropHint: 'Drop images, PDFs or ZIP files above to start',
     processAll: 'Process all',
+    importing: 'Loading files…',
     clear: 'Clear',
     pending: 'Pending',
     processing: 'Processing…',
@@ -70,7 +79,6 @@ const t: Record<Lang, Translations> = {
     background: 'Background',
     contain: 'Contain',
     cover: 'Cover',
-    fixed: 'Fixed',
     auto: 'Auto',
     portrait: 'Portrait',
     landscape: 'Landscape',
@@ -85,15 +93,23 @@ const t: Record<Lang, Translations> = {
     quality: 'Quality',
     autoTone: 'Auto tone',
     upscaleNeeded: 'Source image is smaller than the target. Enable upscaling for a closer fit.',
+    compare: 'Compare',
+    before: 'Before',
+    after: 'After',
+    comparison: 'Comparison',
+    previous: 'Previous',
+    next: 'Next',
   },
   es: {
-    appTitle: 'Redimensionar',
+    appTitle: 'Estudio PrintFit',
     settings: 'Ajustes',
     back: '← Volver',
+    close: 'Cerrar',
     language: 'Idioma',
-    dropZoneLabel: 'Añade imágenes o ZIP',
-    dropHint: 'Arrastra imágenes aquí para empezar',
+    dropZoneLabel: 'Añade imágenes, PDF o ZIP',
+    dropHint: 'Arrastra imágenes, PDF o ZIP aquí para empezar',
     processAll: 'Procesar todo',
+    importing: 'Cargando archivos…',
     clear: 'Limpiar',
     pending: 'Pendiente',
     processing: 'Procesando…',
@@ -111,7 +127,6 @@ const t: Record<Lang, Translations> = {
     background: 'Fondo',
     contain: 'Contener',
     cover: 'Cubrir',
-    fixed: 'Fijo',
     auto: 'Auto',
     portrait: 'Vertical',
     landscape: 'Horizontal',
@@ -126,15 +141,23 @@ const t: Record<Lang, Translations> = {
     quality: 'Calidad',
     autoTone: 'Tono auto',
     upscaleNeeded: 'La imagen es más pequeña que el destino. Activa la ampliación para un mejor resultado.',
+    compare: 'Comparar',
+    before: 'Original',
+    after: 'Final',
+    comparison: 'Comparación',
+    previous: 'Anterior',
+    next: 'Siguiente',
   },
   gl: {
-    appTitle: 'Redimensionar',
+    appTitle: 'Estudio PrintFit',
     settings: 'Axustes',
     back: '← Volver',
+    close: 'Pechar',
     language: 'Idioma',
-    dropZoneLabel: 'Engade imaxes ou ZIP',
-    dropHint: 'Arrastra imaxes aquí para comezar',
+    dropZoneLabel: 'Engade imaxes, PDF ou ZIP',
+    dropHint: 'Arrastra imaxes, PDF ou ZIP aquí para comezar',
     processAll: 'Procesar todo',
+    importing: 'Cargando ficheiros…',
     clear: 'Limpar',
     pending: 'Pendente',
     processing: 'Procesando…',
@@ -152,7 +175,6 @@ const t: Record<Lang, Translations> = {
     background: 'Fondo',
     contain: 'Conter',
     cover: 'Cubrir',
-    fixed: 'Fixo',
     auto: 'Auto',
     portrait: 'Vertical',
     landscape: 'Horizontal',
@@ -167,15 +189,23 @@ const t: Record<Lang, Translations> = {
     quality: 'Calidade',
     autoTone: 'Ton auto',
     upscaleNeeded: 'A imaxe é máis pequena que o destino. Activa a ampliación para un mellor resultado.',
+    compare: 'Comparar',
+    before: 'Orixinal',
+    after: 'Final',
+    comparison: 'Comparación',
+    previous: 'Anterior',
+    next: 'Seguinte',
   },
   fr: {
-    appTitle: 'Redimensionner',
+    appTitle: 'Atelier PrintFit',
     settings: 'Paramètres',
     back: '← Retour',
+    close: 'Fermer',
     language: 'Langue',
-    dropZoneLabel: 'Ajouter des images ou ZIP',
-    dropHint: 'Déposez des images ci-dessus pour commencer',
+    dropZoneLabel: 'Ajouter des images, PDF ou ZIP',
+    dropHint: 'Déposez des images, PDF ou ZIP ci-dessus pour commencer',
     processAll: 'Tout traiter',
+    importing: 'Chargement des fichiers…',
     clear: 'Effacer',
     pending: 'En attente',
     processing: 'Traitement…',
@@ -193,7 +223,6 @@ const t: Record<Lang, Translations> = {
     background: 'Fond',
     contain: 'Contenir',
     cover: 'Couvrir',
-    fixed: 'Fixe',
     auto: 'Auto',
     portrait: 'Portrait',
     landscape: 'Paysage',
@@ -208,15 +237,23 @@ const t: Record<Lang, Translations> = {
     quality: 'Qualité',
     autoTone: 'Ton auto',
     upscaleNeeded: "L'image source est plus petite que la cible. Activez l'agrandissement pour un meilleur résultat.",
+    compare: 'Comparer',
+    before: 'Avant',
+    after: 'Après',
+    comparison: 'Comparaison',
+    previous: 'Précédent',
+    next: 'Suivant',
   },
   de: {
-    appTitle: 'Größe ändern',
+    appTitle: 'PrintFit Studio',
     settings: 'Einstellungen',
     back: '← Zurück',
+    close: 'Schließen',
     language: 'Sprache',
-    dropZoneLabel: 'Bilder oder ZIP hinzufügen',
-    dropHint: 'Bilder oben ablegen, um zu beginnen',
+    dropZoneLabel: 'Bilder, PDF oder ZIP hinzufügen',
+    dropHint: 'Bilder, PDFs oder ZIP-Dateien oben ablegen, um zu beginnen',
     processAll: 'Alle verarbeiten',
+    importing: 'Dateien werden geladen…',
     clear: 'Löschen',
     pending: 'Ausstehend',
     processing: 'Verarbeitung…',
@@ -234,7 +271,6 @@ const t: Record<Lang, Translations> = {
     background: 'Hintergrund',
     contain: 'Einpassen',
     cover: 'Füllen',
-    fixed: 'Fest',
     auto: 'Auto',
     portrait: 'Hochformat',
     landscape: 'Querformat',
@@ -249,15 +285,23 @@ const t: Record<Lang, Translations> = {
     quality: 'Qualität',
     autoTone: 'Auto-Ton',
     upscaleNeeded: 'Das Quellbild ist kleiner als das Ziel. Aktivieren Sie die Vergrößerung für ein besseres Ergebnis.',
+    compare: 'Vergleichen',
+    before: 'Vorher',
+    after: 'Nachher',
+    comparison: 'Vergleich',
+    previous: 'Zurück',
+    next: 'Weiter',
   },
   pt: {
-    appTitle: 'Redimensionar',
+    appTitle: 'Estúdio PrintFit',
     settings: 'Configurações',
     back: '← Voltar',
+    close: 'Fechar',
     language: 'Idioma',
-    dropZoneLabel: 'Adicionar imagens ou ZIP',
-    dropHint: 'Arraste imagens acima para começar',
+    dropZoneLabel: 'Adicionar imagens, PDF ou ZIP',
+    dropHint: 'Arraste imagens, PDFs ou ZIP acima para começar',
     processAll: 'Processar tudo',
+    importing: 'Carregando arquivos…',
     clear: 'Limpar',
     pending: 'Pendente',
     processing: 'Processando…',
@@ -275,7 +319,6 @@ const t: Record<Lang, Translations> = {
     background: 'Fundo',
     contain: 'Conter',
     cover: 'Cobrir',
-    fixed: 'Fixo',
     auto: 'Auto',
     portrait: 'Retrato',
     landscape: 'Paisagem',
@@ -290,15 +333,23 @@ const t: Record<Lang, Translations> = {
     quality: 'Qualidade',
     autoTone: 'Tom automático',
     upscaleNeeded: 'A imagem de origem é menor que o destino. Ative a ampliação para um resultado melhor.',
+    compare: 'Comparar',
+    before: 'Original',
+    after: 'Final',
+    comparison: 'Comparação',
+    previous: 'Anterior',
+    next: 'Seguinte',
   },
   ca: {
-    appTitle: 'Redimensionar',
+    appTitle: 'Estudi PrintFit',
     settings: 'Configuració',
     back: '← Enrere',
+    close: 'Tancar',
     language: 'Idioma',
-    dropZoneLabel: 'Afegeix imatges o ZIP',
-    dropHint: 'Arrossega imatges aquí per començar',
+    dropZoneLabel: 'Afegeix imatges, PDF o ZIP',
+    dropHint: 'Arrossega imatges, PDF o ZIP aquí per començar',
     processAll: 'Processar tot',
+    importing: 'Carregant fitxers…',
     clear: 'Netejar',
     pending: 'Pendent',
     processing: 'Processant…',
@@ -316,7 +367,6 @@ const t: Record<Lang, Translations> = {
     background: 'Fons',
     contain: 'Contenir',
     cover: 'Cobrir',
-    fixed: 'Fix',
     auto: 'Auto',
     portrait: 'Vertical',
     landscape: 'Horitzontal',
@@ -331,15 +381,23 @@ const t: Record<Lang, Translations> = {
     quality: 'Qualitat',
     autoTone: 'To automàtic',
     upscaleNeeded: "La imatge és més petita que el destí. Activa l'ampliació per a un millor resultat.",
+    compare: 'Comparar',
+    before: 'Original',
+    after: 'Final',
+    comparison: 'Comparació',
+    previous: 'Anterior',
+    next: 'Següent',
   },
   eu: {
-    appTitle: 'Tamaina aldatu',
+    appTitle: 'PrintFit Estudioa',
     settings: 'Ezarpenak',
     back: '← Atzera',
+    close: 'Itxi',
     language: 'Hizkuntza',
-    dropZoneLabel: 'Gehitu irudiak edo ZIP',
-    dropHint: 'Arrastatu irudiak hemen hasteko',
+    dropZoneLabel: 'Gehitu irudiak, PDF edo ZIP',
+    dropHint: 'Arrastatu irudiak, PDFak edo ZIPak hemen hasteko',
     processAll: 'Dena prozesatu',
+    importing: 'Fitxategiak kargatzen…',
     clear: 'Garbitu',
     pending: 'Zain',
     processing: 'Prozesatzen…',
@@ -357,7 +415,6 @@ const t: Record<Lang, Translations> = {
     background: 'Atzeko planoa',
     contain: 'Barneratu',
     cover: 'Estali',
-    fixed: 'Finkoa',
     auto: 'Auto',
     portrait: 'Bertikala',
     landscape: 'Horizontala',
@@ -372,6 +429,12 @@ const t: Record<Lang, Translations> = {
     quality: 'Kalitatea',
     autoTone: 'Tonu auto',
     upscaleNeeded: 'Irudia helburua baino txikiagoa da. Aktibatu handipena emaitza hobea lortzeko.',
+    compare: 'Konparatu',
+    before: 'Jatorrizkoa',
+    after: 'Amaierakoa',
+    comparison: 'Konparazioa',
+    previous: 'Aurrekoa',
+    next: 'Hurrengoa',
   },
 };
 
@@ -400,6 +463,12 @@ const Ctx = createContext<I18nContext>({
 
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Lang>('en');
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.title = t[lang].appTitle;
+  }, [lang]);
+
   return <Ctx.Provider value={{ lang, setLang, tr: t[lang] }}>{children}</Ctx.Provider>;
 }
 

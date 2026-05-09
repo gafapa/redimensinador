@@ -31,7 +31,7 @@ export function getEffectiveTarget(settings: ResizeSettings, image: InputImage) 
 
 function needsRotation(image: InputImage, settings: ResizeSettings): boolean {
   const { orientationMode } = settings;
-  if (orientationMode === 'fixed' || orientationMode === 'auto') return false;
+  if (orientationMode === 'auto') return false;
   const imageIsLandscape = image.width > image.height;
   return orientationMode === 'portrait' ? imageIsLandscape : !imageIsLandscape;
 }

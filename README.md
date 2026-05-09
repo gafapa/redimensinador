@@ -1,6 +1,6 @@
-# Print Image Resizer
+# PrintFit Studio
 
-Client-side React + Vite app for preparing image batches for print.
+Client-side React + Vite app for preparing local image batches for print with centimeter-based presets, DPI-aware output sizing, and ZIP export.
 
 ## Goals
 

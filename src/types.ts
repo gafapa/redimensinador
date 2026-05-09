@@ -1,7 +1,7 @@
 export type FitMode = 'contain' | 'cover';
 export type UpscaleMode = 'off' | 'balanced' | 'detail';
 export type OutputFormat = 'jpeg' | 'png' | 'webp';
-export type OrientationMode = 'fixed' | 'auto' | 'portrait' | 'landscape';
+export type OrientationMode = 'auto' | 'portrait' | 'landscape';
 
 export type ImagePreset = {
   id: string;
@@ -35,7 +35,7 @@ export type ResizeSettings = {
 export type InputImage = {
   id: string;
   name: string;
-  source: 'file' | 'zip';
+  source: 'file' | 'zip' | 'pdf';
   file: File;
   objectUrl: string;
   width: number;

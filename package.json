@@ -1,5 +1,6 @@
 {
-  "name": "image-batch-resizer",
+  "name": "printfit-studio",
+  "description": "Client-side print image resizing app for preparing local image batches in centimeter-based formats.",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -12,13 +13,14 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
-    "typescript": "~6.0.2",
-    "vite": "^8.0.4"
+    "typescript": "^6.0.3",
+    "vite": "^8.0.11"
   },
   "dependencies": {
     "jszip": "^3.10.1",
+    "pdfjs-dist": "^5.7.284",
     "pica": "^9.0.1",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
   }
 }

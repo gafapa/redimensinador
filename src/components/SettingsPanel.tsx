@@ -10,7 +10,6 @@ type SettingsPanelProps = {
 
 export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps) {
   const { tr } = useI18n();
-  const selectedPreset = imagePresets.find((preset) => preset.id === settings.presetId);
   const targetPixels = getTargetPixels(settings);
 
   return (
@@ -27,11 +26,20 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
             onChange={(event) => {
               const preset = imagePresets.find((item) => item.id === event.target.value);
               if (!preset) return;
-              onSettingsChange({ ...settings, presetId: preset.id, widthCm: preset.widthCm, heightCm: preset.heightCm });
+
+              const orientedPreset = getOrientedDimensions(preset.widthCm, preset.heightCm, settings.orientationMode);
+              onSettingsChange({
+                ...settings,
+                presetId: preset.id,
+                widthCm: orientedPreset.widthCm,
+                heightCm: orientedPreset.heightCm,
+              });
             }}
           >
             {imagePresets.map((preset) => (
-              <option key={preset.id} value={preset.id}>{preset.label}</option>
+              <option key={preset.id} value={preset.id}>
+                {formatPresetLabel(preset, settings.orientationMode)}
+              </option>
             ))}
           </select>
         </label>
@@ -39,7 +47,10 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
         <label>
           <span>{tr.widthCm}</span>
           <input
-            type="number" min={0.1} step={0.1} value={settings.widthCm}
+            type="number"
+            min={0.1}
+            step={0.1}
+            value={settings.widthCm}
             onChange={(e) => onSettingsChange({ ...settings, presetId: 'custom', widthCm: Number(e.target.value) || 0.1 })}
           />
         </label>
@@ -47,7 +58,10 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
         <label>
           <span>{tr.heightCm}</span>
           <input
-            type="number" min={0.1} step={0.1} value={settings.heightCm}
+            type="number"
+            min={0.1}
+            step={0.1}
+            value={settings.heightCm}
             onChange={(e) => onSettingsChange({ ...settings, presetId: 'custom', heightCm: Number(e.target.value) || 0.1 })}
           />
         </label>
@@ -56,7 +70,9 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
           <span>{tr.dpi}</span>
           <select value={settings.dpi} onChange={(e) => onSettingsChange({ ...settings, dpi: Number(e.target.value) })}>
             {dpiOptions.map((dpi) => (
-              <option key={dpi} value={dpi}>{dpi} DPI</option>
+              <option key={dpi} value={dpi}>
+                {dpi} DPI
+              </option>
             ))}
           </select>
         </label>
@@ -76,9 +92,17 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
           <span>{tr.orientation}</span>
           <select
             value={settings.orientationMode}
-            onChange={(e) => onSettingsChange({ ...settings, orientationMode: e.target.value as ResizeSettings['orientationMode'] })}
+            onChange={(e) => {
+              const orientationMode = e.target.value as ResizeSettings['orientationMode'];
+              const orientedSize = getOrientedDimensions(settings.widthCm, settings.heightCm, orientationMode);
+              onSettingsChange({
+                ...settings,
+                orientationMode,
+                widthCm: orientedSize.widthCm,
+                heightCm: orientedSize.heightCm,
+              });
+            }}
           >
-            <option value="fixed">{tr.fixed}</option>
             <option value="auto">{tr.auto}</option>
             <option value="portrait">{tr.portrait}</option>
             <option value="landscape">{tr.landscape}</option>
@@ -122,33 +146,76 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
 
         <div className="slider-grid">
           <label>
-            <span>{tr.brightness} {settings.enhancements.brightness}%</span>
-            <input type="range" min={70} max={130} value={settings.enhancements.brightness}
-              onChange={(e) => onSettingsChange({ ...settings, enhancements: { ...settings.enhancements, brightness: Number(e.target.value) } })} />
+            <span>
+              {tr.brightness} {settings.enhancements.brightness}%
+            </span>
+            <input
+              type="range"
+              min={70}
+              max={130}
+              value={settings.enhancements.brightness}
+              onChange={(e) =>
+                onSettingsChange({ ...settings, enhancements: { ...settings.enhancements, brightness: Number(e.target.value) } })
+              }
+            />
           </label>
 
           <label>
-            <span>{tr.contrast} {settings.enhancements.contrast}%</span>
-            <input type="range" min={70} max={140} value={settings.enhancements.contrast}
-              onChange={(e) => onSettingsChange({ ...settings, enhancements: { ...settings.enhancements, contrast: Number(e.target.value) } })} />
+            <span>
+              {tr.contrast} {settings.enhancements.contrast}%
+            </span>
+            <input
+              type="range"
+              min={70}
+              max={140}
+              value={settings.enhancements.contrast}
+              onChange={(e) =>
+                onSettingsChange({ ...settings, enhancements: { ...settings.enhancements, contrast: Number(e.target.value) } })
+              }
+            />
           </label>
 
           <label>
-            <span>{tr.saturation} {settings.enhancements.saturation}%</span>
-            <input type="range" min={70} max={160} value={settings.enhancements.saturation}
-              onChange={(e) => onSettingsChange({ ...settings, enhancements: { ...settings.enhancements, saturation: Number(e.target.value) } })} />
+            <span>
+              {tr.saturation} {settings.enhancements.saturation}%
+            </span>
+            <input
+              type="range"
+              min={70}
+              max={160}
+              value={settings.enhancements.saturation}
+              onChange={(e) =>
+                onSettingsChange({ ...settings, enhancements: { ...settings.enhancements, saturation: Number(e.target.value) } })
+              }
+            />
           </label>
 
           <label>
-            <span>{tr.sharpen} {settings.enhancements.sharpen}%</span>
-            <input type="range" min={0} max={60} value={settings.enhancements.sharpen}
-              onChange={(e) => onSettingsChange({ ...settings, enhancements: { ...settings.enhancements, sharpen: Number(e.target.value) } })} />
+            <span>
+              {tr.sharpen} {settings.enhancements.sharpen}%
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={60}
+              value={settings.enhancements.sharpen}
+              onChange={(e) =>
+                onSettingsChange({ ...settings, enhancements: { ...settings.enhancements, sharpen: Number(e.target.value) } })
+              }
+            />
           </label>
 
           <label>
-            <span>{tr.quality} {Math.round(settings.quality * 100)}%</span>
-            <input type="range" min={50} max={100} value={Math.round(settings.quality * 100)}
-              onChange={(e) => onSettingsChange({ ...settings, quality: Number(e.target.value) / 100 })} />
+            <span>
+              {tr.quality} {Math.round(settings.quality * 100)}%
+            </span>
+            <input
+              type="range"
+              min={50}
+              max={100}
+              value={Math.round(settings.quality * 100)}
+              onChange={(e) => onSettingsChange({ ...settings, quality: Number(e.target.value) / 100 })}
+            />
           </label>
         </div>
 
@@ -163,9 +230,39 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
       </div>
 
       <div className="mini-summary">
-        <span>{selectedPreset ? selectedPreset.label : `${formatCentimeters(settings.widthCm)} × ${formatCentimeters(settings.heightCm)} cm`}</span>
-        <span>{targetPixels.width} × {targetPixels.height} px</span>
+        <span>
+          {formatCentimeters(settings.widthCm)} x {formatCentimeters(settings.heightCm)} cm
+        </span>
+        <span>
+          {targetPixels.width} x {targetPixels.height} px
+        </span>
       </div>
     </section>
   );
+}
+
+function getOrientedDimensions(widthCm: number, heightCm: number, orientationMode: ResizeSettings['orientationMode']) {
+  if (orientationMode === 'portrait' && widthCm > heightCm) {
+    return { widthCm: heightCm, heightCm: widthCm };
+  }
+
+  if (orientationMode === 'landscape' && heightCm > widthCm) {
+    return { widthCm: heightCm, heightCm: widthCm };
+  }
+
+  return { widthCm, heightCm };
+}
+
+function formatPresetLabel(
+  preset: { label: string; widthCm: number; heightCm: number },
+  orientationMode: ResizeSettings['orientationMode'],
+) {
+  const orientedPreset = getOrientedDimensions(preset.widthCm, preset.heightCm, orientationMode);
+  const sizeLabel = `${formatCentimeters(orientedPreset.widthCm)} x ${formatCentimeters(orientedPreset.heightCm)} cm`;
+
+  if (/^a\d$/i.test(preset.label)) {
+    return `${preset.label} (${sizeLabel})`;
+  }
+
+  return sizeLabel;
 }
