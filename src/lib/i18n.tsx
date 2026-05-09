@@ -449,6 +449,8 @@ export const LANGUAGES: { code: Lang; label: string }[] = [
   { code: 'eu', label: 'Euskera' },
 ];
 
+const languageStorageKey = 'printfit-studio:language';
+
 type I18nContext = {
   lang: Lang;
   setLang: (l: Lang) => void;
@@ -462,11 +464,15 @@ const Ctx = createContext<I18nContext>({
 });
 
 export function LangProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<Lang>('en');
+  const [lang, setLang] = useState<Lang>(() => loadStoredLanguage());
 
   useEffect(() => {
     document.documentElement.lang = lang;
     document.title = t[lang].appTitle;
+  }, [lang]);
+
+  useEffect(() => {
+    window.localStorage.setItem(languageStorageKey, lang);
   }, [lang]);
 
   return <Ctx.Provider value={{ lang, setLang, tr: t[lang] }}>{children}</Ctx.Provider>;
@@ -474,4 +480,22 @@ export function LangProvider({ children }: { children: ReactNode }) {
 
 export function useI18n() {
   return useContext(Ctx);
+}
+
+function loadStoredLanguage(): Lang {
+  try {
+    const storedLanguage = window.localStorage.getItem(languageStorageKey);
+    if (isSupportedLanguage(storedLanguage)) {
+      return storedLanguage;
+    }
+  } catch {
+    // Ignore storage errors and keep the fallback path below.
+  }
+
+  const browserLanguage = navigator.language.toLowerCase().split('-')[0];
+  return isSupportedLanguage(browserLanguage) ? browserLanguage : 'en';
+}
+
+function isSupportedLanguage(value: unknown): value is Lang {
+  return LANGUAGES.some((language) => language.code === value);
 }
